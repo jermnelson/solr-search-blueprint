@@ -8,14 +8,17 @@
 # Copyright:   (c) Jeremy Nelson, Colorado College 2014
 # Licence:     MIT
 #-------------------------------------------------------------------------------
+import json
+from solr import SearchHandler
 from flask.ext.solrpy import FlaskSolrpy
 from flask import Blueprint, flash, g, jsonify, request, render_template
-from flask import session
+from flask import session, url_for
 
 from forms import BasicSearch
 
-solr_search = Blueprint('solr_search', __name__)
+solr_search = Blueprint('solr_search', __name__, static_folder='static')
 solr = FlaskSolrpy()
+
 
 @solr_search.route('/search',
                    methods=['GET', 'POST'])
@@ -24,9 +27,14 @@ def search():
     solr_result = g.solr.query(query)
     for row in solr_result.results:
         row['workURL'] = ''
-        row['coverURL'] = ''
+        row['coverURL'] = url_for('solr_search.static',
+                                  filename='img/no-cover.png'),
         row['instanceLocation'] = ''
         row['instanceDetail'] = ''
+        if 'author' in row:
+            row['author'].insert(0, 'by ')
+        else:
+            row['author'] = []
     if solr_result.start < 1:
         page = 1
     else:
@@ -39,13 +47,20 @@ def search():
 @solr_search.route('/suggest',
            methods=['GET', 'POST'])
 def suggest():
-    if 'prefetch' in request.form:
-        print("Prefetch is {}".format(request.form.get('prefetch')))
-    return jsonify({})
+    solr_suggest = SearchHandler(g.solr, "/suggest")
+    if 'prefetch' in request.args:
+
+        return jsonify({'value': 'a'})
+    query = request.args.get('q')
+    solr_result = json.loads(solr_suggest.raw(q=query, wt='json'))
+    suggestions = solr_result['spellcheck']['suggestions'][1]['suggestion']
+    return json.dumps(map(lambda x: {'value': x}, suggestions))
+    #return jsonify(results=map(lambda x: {'value': x}, suggestions))
 
 def __get_fields_subfields__(marc_rec,
                              fields,
-                             subfields):
+                             subfields,
+                             unique=True):
     output = []
     for field in marc_rec.get('fields'):
         tag = field.keys()[0]
@@ -54,6 +69,8 @@ def __get_fields_subfields__(marc_rec,
                 subfield = row.keys()[0]
                 if subfields.count(subfield) > 0:
                     output.append(row[subfield])
+    if unique:
+        output = list(set(output))
     return output
 
 def index_marc(solr_connection,
@@ -67,6 +84,9 @@ def index_marc(solr_connection,
                         author=__get_fields_subfields__(marc,
                                                ["100", "110", "111"],
                                                ["a"]),
+                        location=__get_fields_subfields__(marc,
+                                                ["994"],
+                                                ["a"]),
                         topics=__get_fields_subfields__(marc,
                                                ['600', '610', '611', '630',
                                                 '648', '650', '651', '653',
