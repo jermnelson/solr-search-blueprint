@@ -19,14 +19,16 @@ from forms import BasicSearch
 solr_search = Blueprint('solr_search', __name__, static_folder='static')
 solr = FlaskSolrpy()
 
-
 @solr_search.route('/search',
                    methods=['GET', 'POST'])
 def search():
     query = request.form.get('q')
     solr_result = g.solr.query(query)
     for row in solr_result.results:
-        row['workURL'] = ''
+        if '__version__' in row:
+            row.pop('__version__')
+        row['workURL'] = url_for('work',
+                                 work_id=row['id']),
         row['coverURL'] = url_for('solr_search.static',
                                   filename='img/no-cover.png'),
         row['instanceLocation'] = ''
@@ -80,6 +82,7 @@ def index_marc(solr_connection,
     :param solr_connection: Solr.py Connection
     :param marc: JSON MARC record
     """
+    record_info = marc.pop('recordInfo')
     solr_connection.add(id=str(marc.get("_id")),  # Usually MongoDB ID
                         author=__get_fields_subfields__(marc,
                                                ["100", "110", "111"],
