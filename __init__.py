@@ -15,6 +15,10 @@ from flask import Blueprint, flash, g, jsonify, request, render_template
 from flask import session, url_for
 
 from forms import BasicSearch
+try:
+    from helpers.tutt_maps import FULL_CODE_MAP
+except ImportError:
+    FULL_CODE_MAP = {}
 
 solr_search = Blueprint('solr_search', __name__, static_folder='static')
 solr = FlaskSolrpy()
@@ -23,15 +27,18 @@ solr = FlaskSolrpy()
                    methods=['GET', 'POST'])
 def search():
     query = request.form.get('q')
-    solr_result = g.solr.query(query)
+    solr_result = g.solr.query(query, rows=8)
     for row in solr_result.results:
         if '__version__' in row:
             row.pop('__version__')
         row['workURL'] = url_for('work',
                                  work_id=row['id']),
         row['coverURL'] = url_for('solr_search.static',
-                                  filename='img/no-cover.png'),
-        row['instanceLocation'] = ''
+                                  filename='img/no-cover.png')
+        if 'location' in row:
+            location_code = row.pop("location")[0]
+            row['instanceLocation'] = FULL_CODE_MAP.get(location_code,
+                                                        location_code)
         row['instanceDetail'] = ''
         if 'author' in row:
             row['author'].insert(0, 'by ')
