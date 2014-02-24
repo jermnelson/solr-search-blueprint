@@ -27,7 +27,10 @@ solr = FlaskSolrpy()
                    methods=['GET', 'POST'])
 def search():
     query = request.form.get('q')
-    solr_result = g.solr.query(query, rows=8)
+    page = request.form.get('page', 0)
+    solr_result = g.solr.query(query,
+                               start=page,
+                               rows=8)
     for row in solr_result.results:
         if '__version__' in row:
             row.pop('__version__')
@@ -39,7 +42,7 @@ def search():
             location_code = row.pop("location")[0]
             row['instanceLocation'] = FULL_CODE_MAP.get(location_code,
                                                         location_code)
-        row['instanceDetail'] = ''
+        row['instanceDetail'] = 'Instance details'
         if 'author' in row:
             row['author'].insert(0, 'by ')
         else:
