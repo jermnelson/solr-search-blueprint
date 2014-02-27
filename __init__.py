@@ -10,6 +10,7 @@
 #-------------------------------------------------------------------------------
 import json
 from solr import SearchHandler
+from mongo_datastore import check_for_cover_art, get_item_details
 from flask.ext.solrpy import FlaskSolrpy
 from flask import Blueprint, flash, g, jsonify, request, render_template
 from flask import session, url_for
@@ -35,14 +36,19 @@ def search():
         if '__version__' in row:
             row.pop('__version__')
         row['workURL'] = url_for('work',
-                                 work_id=row['id']),
-        row['coverURL'] = url_for('solr_search.static',
-                                  filename='img/no-cover.png')
+                                 work_id=row['id'])
+        if check_for_cover_art(row['id']):
+            row['coverURL'] = url_for('cover_art',
+                                       cover_id=row['id'])
+        else:
+            row['coverURL'] = url_for('solr_search.static',
+                                      filename='img/no-cover.png')
         if 'location' in row:
             location_code = row.pop("location")[0]
             row['instanceLocation'] = FULL_CODE_MAP.get(location_code,
                                                         location_code)
-        row['instanceDetail'] = 'Instance details'
+
+        row['instanceDetail'] = get_item_details(row['id'])
         if 'author' in row:
             row['author'].insert(0, 'by ')
         else:
@@ -65,8 +71,10 @@ def suggest():
         return jsonify({'value': 'a'})
     query = request.args.get('q')
     solr_result = json.loads(solr_suggest.raw(q=query, wt='json'))
-    suggestions = solr_result['spellcheck']['suggestions'][1]['suggestion']
-    return json.dumps(map(lambda x: {'value': x}, suggestions))
+    if len(solr_result['spellcheck']['suggestions']) > 0:
+        suggestions = solr_result['spellcheck']['suggestions'][1]['suggestion']
+        return json.dumps(map(lambda x: {'value': x}, suggestions))
+    return jsonify({})
     #return jsonify(results=map(lambda x: {'value': x}, suggestions))
 
 def __get_fields_subfields__(marc_rec,
@@ -109,7 +117,7 @@ def index_marc(solr_connection,
                                                 ['a', 'v', 'x', 'y', 'z']),
                         title=__get_fields_subfields__(marc,
                                               ["245"],
-                                              ["a"]),
+                                              ["a", "b"]),
                         text=str(marc))
 
 
