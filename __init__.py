@@ -93,6 +93,10 @@ def __get_fields_subfields__(marc_rec,
         output = list(set(output))
     return output
 
+def __get_title__(marc):
+    title_row = __get_fields_subfields__(marc, ["245"], ["a", "b"], False)
+    return ''.join(title_row)
+
 def index_marc(solr_connection,
                marc):
     """Function takes a MARC JSON dict and indexes it into a Solr index.
@@ -115,10 +119,9 @@ def index_marc(solr_connection,
                                                 '658', '662', '690', '691',
                                                 '696', '697', '698', '699'],
                                                 ['a', 'v', 'x', 'y', 'z']),
-                        title=__get_fields_subfields__(marc,
-                                              ["245"],
-                                              ["a", "b"]),
+                        title=__get_title__(marc),
                         text=str(marc))
+
 
 
 def main():
