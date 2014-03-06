@@ -29,9 +29,9 @@ solr = FlaskSolrpy()
 def search():
     query = request.form.get('q')
     page = request.form.get('page', 0)
-    solr_result = g.solr.query(query,
-                               start=page,
-                               rows=8)
+    solr_result = g.solr.select(query,
+                                start=page,
+                                rows=8)
     for row in solr_result.results:
         if '__version__' in row:
             row.pop('__version__')
