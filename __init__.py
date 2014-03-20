@@ -10,7 +10,7 @@
 #-------------------------------------------------------------------------------
 import json
 from solr import SearchHandler
-from mongo_datastore import check_for_cover_art, get_item_details
+from catalog.mongo_datastore import check_for_cover_art, get_item_details
 from flask.ext.solrpy import FlaskSolrpy
 from flask import Blueprint, flash, g, jsonify, request, render_template
 from flask import session, url_for
@@ -124,6 +124,30 @@ def index_marc(solr_connection,
                         text=str(marc))
 
 
+def index_mods(solr_connection,
+               schema_entity,
+               raw_mods):
+    """Function indexes a raw MODS xml document along with metadata into Solr
+
+    Args:
+        solr_connection: Solr.py Connection
+        schema_entity: Schema.org JSON metadata for the main work
+        raw_mods: Raw XML of MODS
+
+    Returns:
+        None
+
+    Raises:
+        None
+    """
+    if 'recordInfo' in schema_entity:
+        record_info = schema_entity.pop('recordInfo')
+    solr_connection.add(id=str(schema_entity.get('_id')),
+                        author=schema_entity.get('author'),
+                        location=schema_entity.get('availableAtOrFrom', None),
+                        topics=schema_entity.get('keywords'),
+                        title=schema_entity.get('headline'),
+                        text=raw_mods)
 
 def main():
     pass
