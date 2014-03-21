@@ -10,7 +10,11 @@
 #-------------------------------------------------------------------------------
 import json
 from solr import SearchHandler
-from catalog.mongo_datastore import check_for_cover_art, get_item_details
+try:
+    from catalog.mongo_datastore import check_for_cover_art, get_item_details
+except ImportError:
+    from mongo_datastore import check_for_cover_art, get_item_details
+
 from flask.ext.solrpy import FlaskSolrpy
 from flask import Blueprint, flash, g, jsonify, request, render_template
 from flask import session, url_for
@@ -36,6 +40,7 @@ def search():
     for row in solr_result.results:
         if '__version__' in row:
             row.pop('__version__')
+        print(row)
         row['workURL'] = url_for('work',
                                  work_id=row['id'])
         if check_for_cover_art(row['id']):
