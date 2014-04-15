@@ -40,7 +40,6 @@ def search():
     for row in solr_result.results:
         if '__version__' in row:
             row.pop('__version__')
-        print(row)
         row['workURL'] = url_for('work',
                                  work_id=row['id'])
         if check_for_cover_art(row['id']):
