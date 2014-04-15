@@ -18,3 +18,8 @@ class BasicSearch(Form):
     "Provides Basic Search Form that is available on all views"
     query = TextField('query', validators=[DataRequired(),])
     go = SubmitField('Go')
+
+
+class FilterResults(Form):
+    "Filters Existing Results"
+    filter_btn = SubmitField("Filter")
